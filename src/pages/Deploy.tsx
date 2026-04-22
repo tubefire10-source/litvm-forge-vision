@@ -62,13 +62,15 @@ function getEthereum(): { request: (args: { method: string; params?: unknown[] }
   return (window as unknown as { ethereum?: { request: (args: { method: string; params?: unknown[] }) => Promise<unknown> } }).ethereum ?? null;
 }
 
-async function ensureSepolia() {
+const LITVM_CHAIN_HEX = "0x" + TOKEN_FACTORY_CHAIN_ID.toString(16);
+
+async function ensureLitVM() {
   const eth = getEthereum();
   if (!eth) throw new Error("No wallet detected");
   try {
     await eth.request({
       method: "wallet_switchEthereumChain",
-      params: [{ chainId: "0xaa36a7" }], // 11155111
+      params: [{ chainId: LITVM_CHAIN_HEX }],
     });
   } catch (err: unknown) {
     const e = err as { code?: number };
@@ -77,11 +79,11 @@ async function ensureSepolia() {
         method: "wallet_addEthereumChain",
         params: [
           {
-            chainId: "0xaa36a7",
-            chainName: "Sepolia",
-            nativeCurrency: { name: "Sepolia ETH", symbol: "ETH", decimals: 18 },
-            rpcUrls: ["https://sepolia.drpc.org"],
-            blockExplorerUrls: [SEPOLIA_EXPLORER],
+            chainId: LITVM_CHAIN_HEX,
+            chainName: "LitVM LiteForge",
+            nativeCurrency: { name: "zkLTC", symbol: TOKEN_FACTORY_NATIVE_SYMBOL, decimals: 18 },
+            rpcUrls: [TOKEN_FACTORY_RPC],
+            blockExplorerUrls: [TOKEN_FACTORY_EXPLORER],
           },
         ],
       });
