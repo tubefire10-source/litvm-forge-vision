@@ -716,7 +716,3 @@ function TokenCard({
   );
 }
 
-function copyText(text: string, label = "Copied") {
-  navigator.clipboard.writeText(text);
-  toast({ title: label, description: text });
-}
