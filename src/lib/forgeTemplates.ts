@@ -109,6 +109,7 @@ pragma solidity ^0.8.20;
 export function genErc20(f: Erc20Form): string {
   const name = f.name || "MyToken";
   const sym = f.symbol || "MTK";
+  const cname = safeIdent(sym, "MTK");
   const supply = f.supply || "1000000000";
   const dec = f.decimals || "18";
   const owner = f.owner || "msg.sender";
