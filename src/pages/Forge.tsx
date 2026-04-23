@@ -190,18 +190,19 @@ export default function Forge() {
     factory: "",
   });
   const [copied, setCopied] = useState(false);
+  const [deploy, setDeploy] = useState<DeployStatus>({ kind: "idle" });
+  const [showDeploy, setShowDeploy] = useState(false);
+
+  const { isConnected } = useAccount();
+  const chainId = useChainId();
+  const { switchChainAsync } = useSwitchChain();
+  const { data: walletClient } = useWalletClient();
+  const publicClient = usePublicClient({ chainId: LITVM_CHAIN_ID });
 
   const code = generated[tab];
-  const fileName = useMemo(() => {
-    const map: Record<ForgeKind, string> = {
-      erc20: (erc20.symbol || "Token") + ".sol",
-      nft: (nft.symbol || "NFT") + ".sol",
-      staking: (staking.contractName || "Staking") + ".sol",
-      vesting: (vesting.contractName || "Vesting") + ".sol",
-      factory: (factory.contractName || "TokenFactory") + ".sol",
-    };
-    return map[tab];
-  }, [tab, erc20.symbol, nft.symbol, staking.contractName, vesting.contractName, factory.contractName]);
+  const forms = { erc20, nft, staking, vesting, factory };
+  const contractName = getContractName(tab, forms);
+  const fileName = useMemo(() => contractName + ".sol", [contractName]);
 
   const onGenerate = () => {
     let out = "";
@@ -211,7 +212,7 @@ export default function Forge() {
     else if (tab === "vesting") out = genVesting(vesting);
     else out = genFactory(factory);
     setGenerated((p) => ({ ...p, [tab]: out }));
-    toast({ title: "Contract generated", description: `${fileName} ready to copy or download.` });
+    toast({ title: "Contract generated", description: `${fileName} ready to copy, download, or deploy.` });
     requestAnimationFrame(() => {
       document.getElementById("forge-output")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
     });
@@ -230,6 +231,48 @@ export default function Forge() {
     a.download = fileName;
     a.click();
     URL.revokeObjectURL(a.href);
+  };
+
+  const onDeploy = async () => {
+    if (!code) {
+      toast({ title: "Generate first", description: "Click Generate to build the contract before deploying." });
+      return;
+    }
+    if (!isConnected || !walletClient) {
+      toast({ title: "Connect wallet", description: "Connect your wallet to deploy on LitVM.", variant: "destructive" });
+      return;
+    }
+    setShowDeploy(true);
+    setDeploy({ kind: "compiling" });
+    try {
+      if (chainId !== LITVM_CHAIN_ID) {
+        try {
+          await switchChainAsync({ chainId: LITVM_CHAIN_ID });
+        } catch {
+          throw new Error("Please switch your wallet to LitVM (Chain 4441) and try again.");
+        }
+      }
+      const { abi, bytecode } = await compileSolidity({
+        source: code,
+        fileName,
+        contractName,
+      });
+      setDeploy({ kind: "deploying" });
+      const hash = await walletClient.deployContract({
+        abi: abi as never,
+        bytecode: bytecode as `0x${string}`,
+        args: [],
+      });
+      setDeploy({ kind: "deploying", tx: hash });
+      const receipt = await publicClient!.waitForTransactionReceipt({ hash });
+      const addr = receipt.contractAddress as `0x${string}` | undefined;
+      if (!addr) throw new Error("Deployment succeeded but no contract address returned.");
+      setDeploy({ kind: "ok", tx: hash, address: addr });
+      toast({ title: "Contract deployed 🚀", description: `Live at ${addr.slice(0, 10)}…${addr.slice(-6)}` });
+    } catch (e) {
+      const err = e as { shortMessage?: string; message?: string };
+      setDeploy({ kind: "error", msg: err?.shortMessage || err?.message || String(e) });
+    }
   };
 
   return (
