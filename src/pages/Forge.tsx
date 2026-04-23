@@ -407,9 +407,135 @@ export default function Forge() {
           </div>
         </Card>
       )}
+
+      <DeployModal
+        open={showDeploy}
+        status={deploy}
+        contractName={contractName}
+        onClose={() => setShowDeploy(false)}
+      />
     </div>
   );
 }
+
+/* ───────────────────────── DEPLOY MODAL ───────────────────────── */
+
+function DeployModal({
+  open,
+  status,
+  contractName,
+  onClose,
+}: {
+  open: boolean;
+  status: DeployStatus;
+  contractName: string;
+  onClose: () => void;
+}) {
+  if (!open) return null;
+  const busy = status.kind === "compiling" || status.kind === "deploying";
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/70 p-4 backdrop-blur-sm">
+      <Card className="w-full max-w-md border-primary/30 bg-card/95 p-6 shadow-2xl">
+        <div className="mb-4 flex items-start justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="rounded-xl border border-primary/30 bg-primary/10 p-2.5">
+              {status.kind === "ok" ? (
+                <CheckCircle2 className="h-5 w-5 text-primary" />
+              ) : status.kind === "error" ? (
+                <AlertCircle className="h-5 w-5 text-destructive" />
+              ) : (
+                <Loader2 className="h-5 w-5 animate-spin text-primary" />
+              )}
+            </div>
+            <div>
+              <h3 className="font-display text-base font-semibold">
+                {status.kind === "compiling" && "Compiling contract…"}
+                {status.kind === "deploying" && "Deploying to LitVM…"}
+                {status.kind === "ok" && "Contract deployed 🚀"}
+                {status.kind === "error" && "Deployment failed"}
+                {status.kind === "idle" && "Deploy contract"}
+              </h3>
+              <p className="font-mono text-[11px] text-muted-foreground">// {contractName}.sol</p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            disabled={busy}
+            className="rounded-lg p-1 text-muted-foreground transition hover:bg-card hover:text-foreground disabled:opacity-40"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        {status.kind === "compiling" && (
+          <p className="text-xs text-muted-foreground">
+            Resolving OpenZeppelin imports and compiling Solidity in your browser. First compile downloads ~5 MB of solc — may take 10-20 seconds.
+          </p>
+        )}
+
+        {status.kind === "deploying" && (
+          <div className="space-y-2 text-xs text-muted-foreground">
+            <p>Sending deployment transaction. Confirm in your wallet, then wait for block confirmation…</p>
+            {status.tx && (
+              <a
+                href={`${EXPLORER_URL}/tx/${status.tx}`}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 font-mono text-primary hover:underline"
+              >
+                <ExternalLink className="h-3 w-3" />
+                {status.tx.slice(0, 10)}…{status.tx.slice(-8)}
+              </a>
+            )}
+          </div>
+        )}
+
+        {status.kind === "ok" && (
+          <div className="space-y-3">
+            <div className="rounded-xl border border-primary/30 bg-primary/5 p-3">
+              <Label className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Contract address</Label>
+              <div className="mt-1 flex items-center gap-2">
+                <code className="flex-1 break-all font-mono text-xs text-primary">{status.address}</code>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => navigator.clipboard.writeText(status.address)}
+                  className="h-7 gap-1 px-2 text-[10px]"
+                >
+                  <Copy className="h-3 w-3" /> Copy
+                </Button>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <Button asChild variant="outline" size="sm" className="gap-1.5">
+                <a href={`${EXPLORER_URL}/address/${status.address}`} target="_blank" rel="noreferrer">
+                  <ExternalLink className="h-3 w-3" /> Contract
+                </a>
+              </Button>
+              <Button asChild size="sm" className="gap-1.5 bg-gradient-violet shadow-glow-violet hover:opacity-90">
+                <a href={`${EXPLORER_URL}/tx/${status.tx}`} target="_blank" rel="noreferrer">
+                  <ExternalLink className="h-3 w-3" /> Transaction
+                </a>
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {status.kind === "error" && (
+          <div className="space-y-3">
+            <pre className="max-h-60 overflow-auto rounded-xl border border-destructive/30 bg-destructive/5 p-3 font-mono text-[11px] text-destructive">
+              {status.msg}
+            </pre>
+            <Button onClick={onClose} variant="outline" size="sm" className="w-full">
+              Close
+            </Button>
+          </div>
+        )}
+      </Card>
+    </div>
+  );
+}
+
 
 /* ───────────────────────── PANELS ───────────────────────── */
 
