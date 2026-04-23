@@ -4,6 +4,34 @@
 
 export type ForgeKind = "erc20" | "nft" | "staking" | "vesting" | "factory";
 
+// Sanitize a string into a valid Solidity identifier (used for contract names
+// derived from token symbols / user input).
+export function safeIdent(s: string, fallback: string): string {
+  const cleaned = (s || "").replace(/[^A-Za-z0-9_]/g, "");
+  if (!cleaned) return fallback;
+  return /^[0-9]/.test(cleaned) ? "_" + cleaned : cleaned;
+}
+
+// Returns the actual `contract X` name that the generator emits, so the
+// compiler / deployer can target it.
+export function getContractName(
+  kind: ForgeKind,
+  forms: { erc20: Erc20Form; nft: NftForm; staking: StakingForm; vesting: VestingForm; factory: FactoryForm }
+): string {
+  switch (kind) {
+    case "erc20":
+      return safeIdent(forms.erc20.symbol, "MTK");
+    case "nft":
+      return safeIdent(forms.nft.symbol, "MNFT");
+    case "staking":
+      return safeIdent(forms.staking.contractName, "TokenStaking");
+    case "vesting":
+      return safeIdent(forms.vesting.contractName, "TokenVesting");
+    case "factory":
+      return safeIdent(forms.factory.contractName, "LitVMTokenFactory");
+  }
+}
+
 export type Erc20Form = {
   name: string;
   symbol: string;
