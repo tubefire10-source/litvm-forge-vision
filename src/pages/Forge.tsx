@@ -14,6 +14,10 @@ import {
   Lock,
   Hourglass,
   Factory,
+  Loader2,
+  X,
+  AlertCircle,
+  CheckCircle2,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -22,6 +26,9 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
+import { useAccount, useChainId, usePublicClient, useSwitchChain, useWalletClient } from "wagmi";
+import { EXPLORER_URL, LITVM_CHAIN_ID } from "@/lib/litvm";
+import { compileSolidity } from "@/lib/solcCompile";
 import {
   Erc20Form,
   FactoryForm,
@@ -34,7 +41,16 @@ import {
   genNft,
   genStaking,
   genVesting,
+  getContractName,
 } from "@/lib/forgeTemplates";
+
+type DeployStatus =
+  | { kind: "idle" }
+  | { kind: "compiling" }
+  | { kind: "deploying"; tx?: `0x${string}` }
+  | { kind: "ok"; tx: `0x${string}`; address: `0x${string}` }
+  | { kind: "error"; msg: string };
+
 
 const TABS: { value: ForgeKind; label: string; icon: typeof Coins; desc: string }[] = [
   { value: "erc20", label: "ERC20 Token", icon: Coins, desc: "Standard fungible token with optional mint, burn, pause, and transfer tax." },
