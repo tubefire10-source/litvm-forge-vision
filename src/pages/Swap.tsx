@@ -424,17 +424,22 @@ export default function Swap() {
       await ensureChain();
       const provider = new BrowserProvider(window.ethereum as never);
       const signer = await provider.getSigner();
-      const router = new Contract(routerAddr, ROUTER_ABI, signer);
+      const router = new Contract(routerAddr, ROUTER_SWAP_ABI, signer);
       const inWei = parseUnits(amountIn, tokenIn.decimals);
       const outWei = parseUnits(amountOut, tokenOut.decimals);
       const minOut = outWei - (outWei * BigInt(Math.floor(slippage * 100))) / 10000n;
       const deadline = Math.floor(Date.now() / 1000) + 1200;
 
+      // OmniFun uses ETH-named functions; LiteSwap uses ZKLTC-named functions
+      const isOmni = routerKey === "omnifun";
+      const fnNativeIn  = isOmni ? "swapExactETHForTokens"  : "swapExactZKLTCForTokens";
+      const fnNativeOut = isOmni ? "swapExactTokensForETH"  : "swapExactTokensForZKLTC";
+
       let tx;
       if (isNativeAddr(tokenInAddr)) {
-        tx = await router.swapExactZKLTCForTokens(minOut, path, walletAddr, deadline, { value: inWei });
+        tx = await router[fnNativeIn](minOut, path, walletAddr, deadline, { value: inWei });
       } else if (isNativeAddr(tokenOutAddr)) {
-        tx = await router.swapExactTokensForZKLTC(inWei, minOut, path, walletAddr, deadline);
+        tx = await router[fnNativeOut](inWei, minOut, path, walletAddr, deadline);
       } else {
         tx = await router.swapExactTokensForTokens(inWei, minOut, path, walletAddr, deadline);
       }
