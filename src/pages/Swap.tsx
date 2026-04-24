@@ -229,12 +229,12 @@ export default function Swap() {
   const { address: walletAddr, isConnected, chainId } = useAccount();
   const { switchChainAsync } = useSwitchChain();
 
-  const routerKey = useMemo(() => pickRouter(tokenInAddr, tokenOutAddr), [tokenInAddr, tokenOutAddr]);
-  const routerAddr = ROUTERS[routerKey].address;
-  const routerLabel = ROUTERS[routerKey].label;
   const [wethAddr, setWethAddr] = useState<string>("");
   const [tokenInAddr, setTokenInAddr] = useState<string>(NATIVE_SENTINEL);
   const [tokenOutAddr, setTokenOutAddr] = useState<string>(POPULAR_TOKENS[0].address);
+  const routerKey = useMemo(() => pickRouter(tokenInAddr, tokenOutAddr), [tokenInAddr, tokenOutAddr]);
+  const routerAddr = ROUTERS[routerKey].address;
+  const routerLabel = ROUTERS[routerKey].label;
   const [tokenIn, setTokenIn] = useState<TokenMeta | null>(null);
   const [tokenOut, setTokenOut] = useState<TokenMeta | null>(null);
   const [amountIn, setAmountIn] = useState<string>("");
